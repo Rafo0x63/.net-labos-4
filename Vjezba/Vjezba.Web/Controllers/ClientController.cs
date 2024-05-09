@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Vjezba.DAL;
 using Vjezba.Model;
@@ -29,7 +31,8 @@ namespace Vjezba.Web.Controllers
             if (!string.IsNullOrWhiteSpace(filter.City))
 				clientQuery = clientQuery.Where(p => p.CityID != null && p.City.Name.ToLower().Contains(filter.City.ToLower()));
 
-            var model = clientQuery.ToList();
+            var model = clientQuery.Include(p => p.City).OrderBy(p => p.ID).ToList();
+
             return View(model);
         }
 
@@ -45,17 +48,97 @@ namespace Vjezba.Web.Controllers
 
 		public IActionResult Create()
 		{
+			
+			ViewBag.Cities = FillCitiesDropDown();
+
 			return View();
 		}
 
 		[HttpPost]
 		public IActionResult Create(Client model)
 		{
-			model.CityID = 1;
-			_dbContext.Clients.Add(model);
-			_dbContext.SaveChanges();
+            ViewBag.Cities = FillCitiesDropDown();
+            foreach (var key in ModelState.Keys)
+            {
+                var state = ModelState[key];
+                if (state.ValidationState == ModelValidationState.Invalid)
+                {
+                    foreach (var error in state.Errors)
+                    {
+                        Console.WriteLine($"Property: {key}, Error: {error.ErrorMessage}");
+                    }
+                }
+            }
+            if (ModelState.IsValid)
+			{
+				_dbContext.Clients.Add(model);
+				_dbContext.SaveChanges();
 
-			return RedirectToAction(nameof(Index));
+				return RedirectToAction(nameof(Index));
+			}
+
+			return View(model);
+		}
+
+		[ActionName("Edit")]
+		public ActionResult EditGet(int id)
+		{
+			var client = _dbContext.Clients.Find(id);
+
+			if (client == null)
+			{
+				return NotFound();
+			}
+
+			var cities = _dbContext.Cities
+				.Select(c => new SelectListItem
+				{
+					Value = c.ID.ToString(),
+					Text = c.Name
+				})
+				.ToList();
+
+			ViewBag.Cities = FillCitiesDropDown();
+
+
+			return View(client);
+		}
+
+		[HttpPost]
+        [ActionName("Edit")]
+        public async Task<ActionResult> EditPost(int id)
+		{
+			var client = _dbContext.Clients.FirstOrDefault(p => p.ID == id);
+			var ok = await this.TryUpdateModelAsync(client);
+
+			if (ok)
+			{
+				_dbContext.SaveChanges();
+				return RedirectToAction(nameof(Index));
+			}
+
+			return View(client);
+
+		}
+
+		public List<SelectListItem> FillCitiesDropDown()
+		{
+			var selectItems = new List<SelectListItem>();
+
+			var listItem = new SelectListItem();
+			listItem.Text = "- odaberite -";
+			listItem.Value = "";
+			selectItems.Add(listItem);
+
+			foreach (var city in _dbContext.Cities)
+			{
+				listItem = new SelectListItem();
+				listItem.Text = city.Name;
+				listItem.Value = city.ID.ToString();
+				selectItems.Add(listItem);
+			}
+
+			return selectItems;
 		}
 	}
 }

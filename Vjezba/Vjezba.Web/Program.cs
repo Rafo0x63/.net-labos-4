@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using Vjezba.DAL;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,19 @@ builder.Services.AddDbContext<ClientManagerDbContext>(options =>
 
 
 var app = builder.Build();
+
+app.UseRequestLocalization();
+
+var supportedCultures = new[]
+ {
+ new CultureInfo("hr"), new CultureInfo("en-US")
+ };
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("hr"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+});
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -43,5 +58,6 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
 
 app.Run();

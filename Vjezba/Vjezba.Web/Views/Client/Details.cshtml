@@ -54,13 +54,28 @@
 				@Html.DisplayFor(model => model.PhoneNumber)
 			</dd>
 			<dt>
+				Radni staz
+			</dt>
+			<dd>
+				@Html.DisplayFor(model => model.WorkingExperience)
+			</dd>
+			<dt>
+				Datum rodenja
+			</dt>
+			<dd>
+				@Html.DisplayFor(model => model.DateOfBirth)
+			</dd>
+
+			<dt>
 				Grad
 			</dt>
 			<dd>
 				@Model?.City?.Name
 			</dd>
 		</dl>
+		<a asp-action="Edit" asp-route-id="@Model.ID" class="btn btn-primary">Edit</a>
 	</div>
+
 
 }
 else

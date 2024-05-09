@@ -24,3 +24,11 @@ footer {
     left: 0;
     right: 0;
 }
+
+.bold-row {
+    font-weight: bold;
+}
+
+.bold-cell {
+    font-weight: bold;
+}

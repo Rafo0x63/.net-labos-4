@@ -1,0 +1,38 @@
+﻿@model Client
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Popis klijenata</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Uredi klijenta</li>
+    </ol>
+</nav>
+
+<h1>Edit Client</h1>
+
+@if (Model != null)
+{
+<form asp-action="Edit">
+    <div style="margin-top: 20px; margin-bottom: 10px;">
+        <partial name="_CreateOrEdit" model="@Model" />
+    </div>
+</form>
+} else
+{
+    <div>
+        Morate odabrati klijenta!
+    </div>
+}
+
+@section scripts {
+    <script type="text/javascript">
+        $(function () {
+            $('#address-input').on('input', function () {
+                $('#address').val($(this).val());
+            });
+        });
+    </script>
+}

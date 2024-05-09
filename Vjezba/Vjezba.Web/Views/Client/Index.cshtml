@@ -16,6 +16,7 @@
 			<th>Address</th>
 			<th>Email</th>
 			<th>City</th>
+			<th></th>
 		</tr>
 	</thead>
 	<tbody>
@@ -28,7 +29,34 @@
 				<td>@item.Address</td>
 				<td>@item.Email</td>
 				<td>@item.City?.Name</td>
+				<td><a asp-action="Edit" asp-route-id="@item.ID">Edit</a></td>
 			</tr>
 		}
 	</tbody>
 </table>
+
+@section scripts {
+	<script type="text/javascript">
+		$(function () {
+			$("tr").css('opacity', '0.5');
+
+			$("tr").mouseenter(function () {
+				$(this).css('opacity', '1.0');
+			});
+
+			$("tr").mouseleave(function () {
+				$(this).css('opacity', '0.5');
+			});
+
+			$('td').click(function () {
+				if ($(this).parent().hasClass('bold-row')) {
+					$(this).parent().removeClass('bold-row');
+					$(this).parent().find('td').removeClass('bold-cell');
+				} else {
+					$(this).parent().addClass('bold-row');
+					$(this).parent().find('td').addClass('bold-cell');
+				}
+			});
+		});
+	</script>
+}
