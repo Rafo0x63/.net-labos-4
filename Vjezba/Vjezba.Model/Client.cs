@@ -33,5 +33,5 @@ public class Client
 	[Range(0, 100, ErrorMessage = "Godine radnog staza moraju biti izmedu 0 i 100")]
 	public int? WorkingExperience { get; set; }
 
-	public DateTime? DateOfBirth { get; set; }	
+	public DateOnly? DateOfBirth { get; set; }	
 }
