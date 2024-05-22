@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Globalization;
 using Vjezba.DAL;
 
@@ -13,6 +15,7 @@ builder.Services.AddDbContext<ClientManagerDbContext>(options =>
 	options.UseSqlServer(
 		builder.Configuration.GetConnectionString("ClientManagerDbContext"),
 			opt => opt.MigrationsAssembly("Vjezba.DAL")));
+
 
 
 var app = builder.Build();

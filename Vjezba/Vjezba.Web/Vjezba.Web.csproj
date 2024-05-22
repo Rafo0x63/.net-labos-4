@@ -19,4 +19,8 @@
     <ProjectReference Include="..\Vjezba.Model\Vjezba.Model.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\uploads\" />
+  </ItemGroup>
+
 </Project>

@@ -22,6 +22,28 @@ namespace Vjezba.DAL.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Vjezba.Model.Attachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.ToTable("Attachments");
+                });
+
             modelBuilder.Entity("Vjezba.Model.City", b =>
                 {
                     b.Property<int>("ID")
@@ -140,6 +162,17 @@ namespace Vjezba.DAL.Migrations
                     b.ToTable("Meetings");
                 });
 
+            modelBuilder.Entity("Vjezba.Model.Attachment", b =>
+                {
+                    b.HasOne("Vjezba.Model.Client", "Client")
+                        .WithMany("Attachments")
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+                });
+
             modelBuilder.Entity("Vjezba.Model.Client", b =>
                 {
                     b.HasOne("Vjezba.Model.City", "City")
@@ -167,6 +200,8 @@ namespace Vjezba.DAL.Migrations
 
             modelBuilder.Entity("Vjezba.Model.Client", b =>
                 {
+                    b.Navigation("Attachments");
+
                     b.Navigation("Meetings");
                 });
 #pragma warning restore 612, 618

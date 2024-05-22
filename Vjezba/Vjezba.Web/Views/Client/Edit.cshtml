@@ -1,21 +1,80 @@
 ﻿@model Vjezba.Model.Client
 
 @{
-	ViewData["Title"] = "Uređivanje klijenta";
+    ViewData["Title"] = "Uređivanje klijenta";
 }
 
 <nav aria-label="breadcrumb">
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item"><a asp-action="Index">Popis klijenata</a></li>
-		<li class="breadcrumb-item active" aria-current="page">Uređivanje klijenta</li>
-	</ol>
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Popis klijenata</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Uređivanje klijenta</li>
+    </ol>
 </nav>
 
 <div class="row">
-	<div class="col-md-4">
-		<form asp-action="Edit">
-			<input type="hidden" asp-for="ID" />
-			<partial name="_CreateOrEdit" />
-		</form>
-	</div>
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <input type="hidden" asp-for="ID" />
+            <partial name="_CreateOrEdit" />
+        </form>
+    </div>
+    <div class="col-md-6">
+        <label>Photo</label>
+        <div>
+            <form class="dropzone" id="myDropzone" action="@Url.Action("UploadAttachment", "Client", new { clientId = Model.ID })" enctype="multipart/form-data"></form>
+        </div>
+        <div id="attachmentList"></div>
+    </div>
 </div>
+
+@section Scripts {
+    <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
+    <script>
+
+        Dropzone.autoDiscover = false;
+
+        function loadAttachments() {
+            $.ajax({
+                url: '@Url.Action("GetAttachments", "Client", new { id = Model.ID })',
+                type: 'GET',
+                success: function (data) {
+                    $('#attachmentList').html(data);
+                }
+            });
+        }
+
+        $(document).ready(function () {
+
+            loadAttachments();
+
+            var myDropzone = new Dropzone("#myDropzone", {
+                paramName: "file", // The name that will be used to transfer the file
+                autoProcessQueue: true,
+                uploadMultiple: false,
+                parallelUploads: 1,
+                maxFiles: 10,
+                acceptedFiles: ".jpg, .jpeg, .png, .gif, .pdf, .doc, .docx",
+                addRemoveLinks: true,
+                dictDefaultMessage: "Drag and drop files here or click to upload",
+                init: function () {
+                    this.on("queuecomplete", function () {
+                        loadAttachments();
+                    });
+                }
+            })
+        });
+
+        $(document).on('click', '.delete-attachment', function () {
+            var attachmentId = $(this).data('id');
+            $.ajax({
+                url: '@Url.Action("DeleteAttachment", "Client")/' + attachmentId,
+                type: 'DELETE',
+                success: function () {
+                    loadAttachments();
+                }
+            });
+        });
+
+    </script>
+}

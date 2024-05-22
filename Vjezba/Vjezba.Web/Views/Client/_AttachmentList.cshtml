@@ -1,0 +1,18 @@
+﻿@model IEnumerable<dynamic>
+
+<ul>
+    @foreach (var attachment in Model)
+    {
+        <li style="list-style: none;">
+        @{
+            string filePath = attachment.FilePath;
+            int lastIndex = filePath.LastIndexOf('\\'); // Get the index of the last backslash
+            string fileName = filePath.Substring(lastIndex + 1);
+            Console.WriteLine(fileName);
+        }
+
+            <img width="50px" src="~/uploads/@fileName"/>
+            <button class="delete-attachment" data-id="@attachment.Id">Delete</button>
+        </li>
+    }
+</ul>

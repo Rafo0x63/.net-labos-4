@@ -8,30 +8,11 @@ using Vjezba.Web.Models;
 namespace Vjezba.Web.Controllers
 {
 	public class ClientController(
-        ClientManagerDbContext _dbContext) : Controller
+        ClientManagerDbContext _dbContext, IWebHostEnvironment _environment) : Controller
     {
-        public IActionResult Index(ClientFilterModel filter = null)
+        public IActionResult Index()
         {
-			filter ??= new ClientFilterModel();
-
-			var clientQuery = _dbContext.Clients.Include(p => p.City).AsQueryable();
-
-			//Primjer iterativnog građenja upita - dodaje se "where clause" samo u slučaju da je parametar doista proslijeđen.
-			//To rezultira optimalnijim stablom izraza koje se kvalitetnije potencijalno prevodi u SQL
-			if (!string.IsNullOrWhiteSpace(filter.FullName))
-				clientQuery = clientQuery.Where(p => (p.FirstName + " " + p.LastName).ToLower().Contains(filter.FullName.ToLower()));
-
-			if (!string.IsNullOrWhiteSpace(filter.Address))
-                clientQuery = clientQuery.Where(p => p.Address.ToLower().Contains(filter.Address.ToLower()));
-
-            if (!string.IsNullOrWhiteSpace(filter.Email))
-                clientQuery = clientQuery.Where(p => p.Email.ToLower().Contains(filter.Email.ToLower()));
-
-            if (!string.IsNullOrWhiteSpace(filter.City))
-				clientQuery = clientQuery.Where(p => p.CityID != null && p.City.Name.ToLower().Contains(filter.City.ToLower()));
-
-            var model = clientQuery.ToList();
-            return View(model);
+            return View(_dbContext.Clients.ToList());
         }
 
         public IActionResult Details(int? id = null)
@@ -110,5 +91,87 @@ namespace Vjezba.Web.Controllers
 
 			ViewBag.PossibleCities = selectItems;
 		}
-	}
+
+        [HttpPost]
+        public IActionResult IndexAjax(ClientFilterModel filter)
+        {
+			var filteredClients = _dbContext.Clients
+				.Include(c => c.City).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(filter.FullName))
+                filteredClients = filteredClients.Where(p => (p.FirstName + " " + p.LastName).ToLower().Contains(filter.FullName.ToLower()));
+
+            if (!string.IsNullOrWhiteSpace(filter.Address))
+                filteredClients = filteredClients.Where(p => p.Address.ToLower().Contains(filter.Address.ToLower()));
+
+            if (!string.IsNullOrWhiteSpace(filter.Email))
+                filteredClients = filteredClients.Where(p => p.Email.ToLower().Contains(filter.Email.ToLower()));
+
+            if (!string.IsNullOrWhiteSpace(filter.City))
+                filteredClients = filteredClients.Where(p => p.CityID != null && p.City.Name.ToLower().Contains(filter.City.ToLower()));
+
+            Console.WriteLine(filter.FullName);
+
+            return PartialView("_IndexTable", filteredClients);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UploadAttachment(int clientId, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            var filePath = Path.Combine(uploadsFolder, file.FileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var attachment = new Attachment
+            {
+                ClientId = clientId,
+                FilePath = filePath
+            };
+
+            _dbContext.Attachments.Add(attachment);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new { filePath });
+        }
+
+
+
+        [HttpGet]
+        public async Task<IActionResult> GetAttachments(int id)
+        {
+            var attachments = await _dbContext.Attachments
+                .Where(a => a.ClientId == id).ToListAsync();
+
+            return PartialView("_AttachmentList", attachments);
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteAttachment(int id, int attachmentId)
+        {
+            var attachment = await _dbContext.Attachments.SingleAsync(a => a.Id == id);
+            if (attachment == null) return NotFound("File doesn't exist");
+
+            var filePath = Path.Combine(_environment.WebRootPath, attachment.FilePath.TrimStart('/'));
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+            }
+
+            _dbContext.Attachments.Remove(attachment);
+            await _dbContext.SaveChangesAsync();
+            return Ok();
+        }
+    }
 }
