@@ -1,102 +1,132 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Vjezba.DAL;
 using Vjezba.Model;
 using Vjezba.Web.Models;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace Vjezba.Web.Controllers
 {
-	public class ClientController(
-        ClientManagerDbContext _dbContext, IWebHostEnvironment _environment) : Controller
+    public class ClientController : BaseController
     {
+        private readonly ClientManagerDbContext _dbContext;
+        private readonly IWebHostEnvironment _environment;
+
+        public ClientController(ClientManagerDbContext dbContext, IWebHostEnvironment environment)
+        {
+            _dbContext = dbContext;
+            _environment = environment;
+        }
+
+        [AllowAnonymous]
         public IActionResult Index()
         {
             return View(_dbContext.Clients.ToList());
         }
 
+        [Authorize]
         public IActionResult Details(int? id = null)
         {
-			var client = _dbContext.Clients
-				.Include(p => p.City)
-				.Where(p => p.ID == id)
-				.FirstOrDefault();
+            var client = _dbContext.Clients
+                .Include(p => p.City)
+                .Where(p => p.ID == id)
+                .FirstOrDefault();
 
-			return View(client);
-		}
+            return View(client);
+        }
 
-		public IActionResult Create()
-		{
-			this.FillDropdownValues();
-			return View();
-		}
+        [Authorize(Roles = "Admin, Manager")]
+        public IActionResult Create()
+        {
+            this.FillDropdownValues();
+            return View();
+        }
 
-		[HttpPost]
-		public IActionResult Create(Client model)
-		{
-			if (ModelState.IsValid)
-			{
-				_dbContext.Clients.Add(model);
-				_dbContext.SaveChanges();
+        [Authorize(Roles = "Admin, Manager")]
+        [HttpPost]
+        public IActionResult Create(Client model)
+        {
+            Console.WriteLine("USER ID --------- " + UserId);
+            if (ModelState.IsValid)
+            {
+                model.CreatedById = UserId;
 
-				return RedirectToAction(nameof(Index));
-			}
-			else
-			{
-				this.FillDropdownValues();
-				return View();
-			}
-		}
+                _dbContext.Clients.Add(model);
+                _dbContext.SaveChanges();
 
-		[ActionName(nameof(Edit))]
-		public IActionResult Edit(int id)
-		{
-			var model = _dbContext.Clients.FirstOrDefault(c => c.ID == id);
-			this.FillDropdownValues();
-			return View(model);
-		}
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors);
+                foreach (var error in errors)
+                {
+                    // Možete koristiti error.ErrorMessage za prikazivanje poruke
+                    Console.WriteLine(error.ErrorMessage);
+                }
+                this.FillDropdownValues();
+                return View();
+            }
+        }
 
-		[HttpPost]
-		[ActionName(nameof(Edit))]
-		public async Task<IActionResult> EditPost(int id)
-		{
-			var client = _dbContext.Clients.Single(c => c.ID == id);
-			var ok = await this.TryUpdateModelAsync(client);
+        [Authorize(Roles = "Admin, Manager")]
+        [ActionName(nameof(Edit))]
+        public IActionResult Edit(int id)
+        {
+            var model = _dbContext.Clients.FirstOrDefault(c => c.ID == id);
+            this.FillDropdownValues();
+            return View(model);
+        }
 
-			if (ok && this.ModelState.IsValid)
-			{
-				_dbContext.SaveChanges();
-				return RedirectToAction(nameof(Index));
-			}
+        [Authorize(Roles = "Admin, Manager")]
+        [HttpPost]
+        [ActionName(nameof(Edit))]
+        public async Task<IActionResult> EditPost(int id)
+        {
+            var client = _dbContext.Clients.Single(c => c.ID == id);
+            var ok = await this.TryUpdateModelAsync(client);
 
-			this.FillDropdownValues();
-			return View();
-		}
+            if (ok && this.ModelState.IsValid)
+            {
+                client.UpdatedById = UserId;
 
-		private void FillDropdownValues()
-		{
-			var selectItems = new List<SelectListItem>();
+                _dbContext.SaveChanges();
+                return RedirectToAction(nameof(Index));
+            }
 
-			//Polje je opcionalno
-			var listItem = new SelectListItem();
-			listItem.Text = "- odaberite -";
-			listItem.Value = "";
-			selectItems.Add(listItem);
+            this.FillDropdownValues();
+            return View();
+        }
 
-			foreach (var category in _dbContext.Cities)
-			{
-				listItem = new SelectListItem(category.Name, category.ID.ToString());
-				selectItems.Add(listItem);
-			}
+        private void FillDropdownValues()
+        {
+            var selectItems = new List<SelectListItem>();
 
-			ViewBag.PossibleCities = selectItems;
-		}
+            // Polje je opcionalno
+            var listItem = new SelectListItem
+            {
+                Text = "- odaberite -",
+                Value = ""
+            };
+            selectItems.Add(listItem);
+
+            foreach (var category in _dbContext.Cities)
+            {
+                listItem = new SelectListItem(category.Name, category.ID.ToString());
+                selectItems.Add(listItem);
+            }
+
+            ViewBag.PossibleCities = selectItems;
+        }
 
         [HttpPost]
         public IActionResult IndexAjax(ClientFilterModel filter)
         {
-			var filteredClients = _dbContext.Clients
-				.Include(c => c.City).AsQueryable();
+            var filteredClients = _dbContext.Clients
+                .Include(c => c.City).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(filter.FullName))
                 filteredClients = filteredClients.Where(p => (p.FirstName + " " + p.LastName).ToLower().Contains(filter.FullName.ToLower()));
@@ -146,8 +176,6 @@ namespace Vjezba.Web.Controllers
             return Ok(new { filePath });
         }
 
-
-
         [HttpGet]
         public async Task<IActionResult> GetAttachments(int id)
         {
@@ -157,6 +185,7 @@ namespace Vjezba.Web.Controllers
             return PartialView("_AttachmentList", attachments);
         }
 
+        [Authorize]
         [HttpDelete]
         public async Task<IActionResult> DeleteAttachment(int id, int attachmentId)
         {
